@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LinkedIn ICP Pills — Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="pill pill--orange"><i></i>ICP</span>
+      <h1>LinkedIn ICP Pills</h1>
+    </div>
+    <p class="muted">Shows who someone is, right under their name on LinkedIn.</p>
+  </header>
+
+  <main>
+    <!-- HubSpot -->
+    <section class="card">
+      <h2>1. HubSpot connection</h2>
+      <p class="muted">
+        Anyone who is a contact in your HubSpot CRM gets the <b>ICP</b> pill.
+        Contacts are matched by their LinkedIn URL (added by Apollo), with a name-based fallback.
+      </p>
+
+      <details class="howto">
+        <summary>How to get a HubSpot token (2 minutes, one time)</summary>
+        <ol>
+          <li>In HubSpot click the <b>gear icon</b> (Settings) at the top right.</li>
+          <li>Left menu: <b>Integrations → Private Apps</b>, then <b>Create a private app</b>.</li>
+          <li>Name it <code>LinkedIn ICP Pills</code>.</li>
+          <li>Open the <b>Scopes</b> tab, search <code>contacts</code> and tick
+            <code>crm.objects.contacts.read</code> and <code>crm.schemas.contacts.read</code>. Read only, nothing else.</li>
+          <li>Click <b>Create app</b>, then <b>Show token</b> and <b>Copy</b>.</li>
+          <li>Paste it below and click <b>Test &amp; save</b>.</li>
+        </ol>
+      </details>
+
+      <label class="field">
+        <span>Private App access token</span>
+        <div class="row">
+          <input id="token" type="password" placeholder="pat-na1-…" autocomplete="off" spellcheck="false" />
+          <button id="toggleToken" class="btn btn--ghost" type="button" title="Show / hide">👁</button>
+          <button id="testToken" class="btn btn--primary" type="button">Test &amp; save</button>
+        </div>
+      </label>
+      <div id="tokenStatus" class="status"></div>
+
+      <label class="field" id="propField" hidden>
+        <span>Which HubSpot field holds the person's LinkedIn URL?</span>
+        <select id="linkedinProperty"></select>
+        <small class="muted">Auto-detected. The first option is almost always right (Apollo usually fills <code>LinkedIn URL</code>).</small>
+      </label>
+
+      <label class="check">
+        <input id="nameMatching" type="checkbox" checked />
+        <span>Also match by name when a contact has no LinkedIn URL in HubSpot
+          <small class="muted">(shown as “ICP ?” with a dashed border, so you know it is less certain)</small></span>
+      </label>
+
+      <label class="field">
+        <span>Text on the HubSpot pill</span>
+        <input id="hubspotLabel" type="text" value="ICP" maxlength="24" style="max-width:200px" />
+      </label>
+
+      <label class="field">
+        <span>Refresh contacts from HubSpot every</span>
+        <div class="row">
+          <input id="syncDays" type="number" min="1" max="90" step="1" value="7" style="max-width:90px" />
+          <span class="muted">days</span>
+        </div>
+        <small class="muted">Between refreshes the extension uses its saved copy, so LinkedIn stays fast. Use "Sync contacts now" after adding a batch of new people.</small>
+      </label>
+
+      <div class="row space">
+        <button id="syncNow" class="btn" type="button">Sync contacts now</button>
+        <div id="syncStatus" class="status"></div>
+      </div>
+    </section>
+
+    <!-- Manual tags -->
+    <section class="card">
+      <h2>2. Your own labels</h2>
+      <p class="muted">
+        Tag anyone with your own label, e.g. <b>Top authority influencer</b>. A person can have several labels.
+        Tip: on LinkedIn, hover a name and click the small <b>+</b> to add a label without leaving the page.
+      </p>
+
+      <form id="addForm" class="addform">
+        <input id="addUrl" type="text" placeholder="LinkedIn profile URL (linkedin.com/in/…)" required />
+        <input id="addName" type="text" placeholder="Name (optional)" />
+        <input id="addLabel" type="text" list="labelList" placeholder="Label, e.g. Top authority influencer" required maxlength="40" />
+        <datalist id="labelList"></datalist>
+        <select id="addColor"></select>
+        <button class="btn btn--primary" type="submit">Add</button>
+      </form>
+
+      <div class="row space">
+        <input id="filter" type="search" placeholder="Search people or labels…" />
+        <span id="count" class="muted"></span>
+      </div>
+
+      <table id="tagsTable">
+        <thead><tr><th>Person</th><th>Labels</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="empty" class="muted empty">No labels yet.</div>
+
+      <div class="row space">
+        <div class="row">
+          <button id="exportBtn" class="btn" type="button">Export backup</button>
+          <button id="importBtn" class="btn" type="button">Import backup</button>
+          <input id="importFile" type="file" accept="application/json" hidden />
+        </div>
+        <span id="ioStatus" class="status"></span>
+      </div>
+    </section>
+    <!-- Diagnostics -->
+    <section class="card">
+      <h2>3. Diagnostics</h2>
+      <p class="muted">If something does not look right on LinkedIn, keep a LinkedIn tab open, click the button, and send a screenshot of this box.</p>
+      <div class="row">
+        <button id="diagBtn" class="btn" type="button">Check now</button>
+        <button id="diagCopy" class="btn btn--ghost" type="button">Copy as text</button>
+      </div>
+      <pre id="diagOut" class="diag"></pre>
+    </section>
+  </main>
+
+  <script src="shared.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

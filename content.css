@@ -1,0 +1,122 @@
+/* Pills injected under names on LinkedIn */
+
+.icpx-pills {
+  display: flex !important;
+  position: relative !important;
+  z-index: 20 !important;
+  top: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  right: auto !important;
+  transform: none !important;
+  float: none !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 0 3px;
+  line-height: 1;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.icpx-pills--profile { margin: 6px 0 2px; }
+.icpx-pills--empty { min-height: 0; }
+
+.icpx-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 7px;
+  border-radius: 999px;
+  background: var(--icpx-bg, #EDE9FE);
+  color: var(--icpx-fg, #5B21B6);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  text-decoration: none !important;
+  cursor: default;
+}
+.icpx-pill--soft { opacity: 0.8; border: 1px dashed var(--icpx-dot); }
+.icpx-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--icpx-dot, #8B5CF6);
+  flex: none;
+}
+
+.icpx-add {
+  position: relative;
+  z-index: 21;
+  pointer-events: auto !important;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  background: #fff;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.icpx-pills:hover .icpx-add,
+.icpx-pills--empty:hover .icpx-add,
+*:hover > .icpx-pills .icpx-add,
+.update-components-actor:hover .icpx-add,
+.comments-comment-meta:hover .icpx-add,
+.entity-result:hover .icpx-add,
+li:hover > * .icpx-add,
+.icpx-add:focus-visible { opacity: 1; }
+.icpx-pills--profile .icpx-add { opacity: 0.55; }
+.icpx-add:hover { background: #f3f4f6; color: #111; }
+
+/* Quick-add editor */
+
+.icpx-editor {
+  position: absolute;
+  z-index: 2147483000;
+  width: 300px;
+  background: #fff;
+  color: #1f2937;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  padding: 12px;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.icpx-ed-head { margin-bottom: 8px; }
+.icpx-ed-name { font-weight: 700; font-size: 14px; }
+.icpx-ed-sub { color: #6b7280; font-size: 11px; word-break: break-all; }
+.icpx-ed-hs { margin-top: 4px; font-size: 12px; color: #9A3412; font-weight: 600; }
+.icpx-ed-hs--no { color: #6b7280; font-weight: 500; }
+.icpx-ed-current { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 10px; }
+.icpx-ed-row { display: flex; align-items: center; gap: 6px; }
+.icpx-ed-empty { color: #9ca3af; font-size: 12px; }
+.icpx-ed-del {
+  border: none; background: transparent; color: #9ca3af; font-size: 16px; line-height: 1;
+  cursor: pointer; padding: 0 4px;
+}
+.icpx-ed-del:hover { color: #dc2626; }
+.icpx-ed-form { display: flex; flex-direction: column; gap: 8px; }
+.icpx-ed-label {
+  width: 100%; box-sizing: border-box; padding: 7px 9px; border-radius: 8px;
+  border: 1px solid #d1d5db; font-size: 13px; outline: none;
+}
+.icpx-ed-label:focus { border-color: #8B5CF6; box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2); }
+.icpx-ed-colors { display: flex; gap: 6px; }
+.icpx-swatch {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0;
+}
+.icpx-swatch--on { border-color: #111; box-shadow: 0 0 0 2px #fff inset; }
+.icpx-ed-actions { display: flex; gap: 6px; justify-content: space-between; }
+.icpx-btn {
+  border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 1px solid #d1d5db; background: #fff; color: #374151;
+}
+.icpx-btn--primary { background: #6d28d9; border-color: #6d28d9; color: #fff; }
+.icpx-btn--primary:hover { background: #5b21b6; }

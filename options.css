@@ -1,0 +1,90 @@
+:root {
+  --bg: #f6f7f9;
+  --card: #fff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --primary: #6d28d9;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.top { max-width: 860px; margin: 0 auto; padding: 28px 20px 8px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+h1 { font-size: 22px; margin: 0; }
+h2 { font-size: 16px; margin: 0 0 6px; }
+main { max-width: 860px; margin: 0 auto; padding: 8px 20px 60px; display: grid; gap: 18px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+p { margin: 0 0 12px; }
+code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+.howto { margin: 0 0 14px; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 10px 14px; }
+.howto summary { cursor: pointer; font-weight: 600; }
+.howto ol { margin: 8px 0 0; padding-left: 20px; }
+.howto li { margin: 4px 0; }
+
+.field { display: block; margin: 12px 0; }
+.field > span { display: block; font-weight: 600; margin-bottom: 5px; }
+.field small { display: block; margin-top: 4px; }
+input[type="text"], input[type="password"], input[type="search"], select {
+  width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: #fff;
+}
+input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.15); }
+.row { display: flex; gap: 8px; align-items: center; }
+.row.space { justify-content: space-between; margin-top: 14px; }
+.check { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0; }
+.check input { margin-top: 3px; }
+.check small { display: block; }
+
+.btn {
+  padding: 8px 14px; border-radius: 999px; border: 1px solid #d1d5db; background: #fff; color: #374151;
+  font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: #f3f4f6; }
+.btn--primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn--primary:hover { background: #5b21b6; }
+.btn--ghost { border-color: transparent; }
+
+.status { font-size: 13px; color: var(--muted); min-height: 18px; }
+.status--ok { color: #15803d; }
+.status--err { color: #b91c1c; }
+.status--warn { color: #b45309; }
+
+.addform { display: grid; grid-template-columns: 1.4fr 1fr 1.2fr 110px auto; gap: 8px; margin: 8px 0 4px; }
+@media (max-width: 720px) { .addform { grid-template-columns: 1fr 1fr; } }
+
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+td { padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+td a { color: #1d4ed8; font-weight: 600; text-decoration: none; }
+td a:hover { text-decoration: underline; }
+td.right { text-align: right; white-space: nowrap; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pillwrap { display: inline-flex; align-items: center; gap: 2px; }
+.x { border: none; background: transparent; color: #9ca3af; cursor: pointer; font-size: 15px; padding: 0 4px; }
+.x:hover { color: #dc2626; }
+.empty { padding: 20px 0; text-align: center; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px 2px 7px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.pill i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.pill--orange { background: #FFEDD5; color: #9A3412; }
+.pill--orange i { background: #F97316; }
+
+.diag { margin-top: 10px; background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 12px; font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; min-height: 40px; }
+
+tr.editing td { background: #faf5ff; }
+.editform { display: flex; flex-direction: column; gap: 10px; }
+.editform__head { display: flex; flex-direction: column; gap: 3px; max-width: 360px; }
+.editform__labels { display: flex; flex-direction: column; gap: 6px; }
+.editform__label { display: grid; grid-template-columns: minmax(180px, 320px) 110px auto auto; gap: 8px; align-items: center; }
+.editform__actions { display: flex; gap: 8px; }
+.editform .btn--ghost { align-self: flex-start; }
