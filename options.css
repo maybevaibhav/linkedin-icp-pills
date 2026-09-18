@@ -88,3 +88,22 @@ tr.editing td { background: #faf5ff; }
 .editform__label { display: grid; grid-template-columns: minmax(180px, 320px) 110px auto auto; gap: 8px; align-items: center; }
 .editform__actions { display: flex; gap: 8px; }
 .editform .btn--ghost { align-self: flex-start; }
+
+/* Efficialabs brand bar. Colours only, no web fonts: the extension makes no
+   network request other than to HubSpot, and that promise stays true. */
+.brandbar { max-width: 860px; margin: 0 auto; padding: 0 20px 60px; }
+.brandbar__inner {
+  background: #06503C; color: #EAF3EE; border-radius: 14px; padding: 20px 24px;
+  display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+}
+.brandbar__line1 { font-size: 15px; font-weight: 600; color: #fff; }
+.brandbar__line1 strong { color: #F5A524; }
+.brandbar__line2 { margin-top: 6px; font-size: 13px; line-height: 1.5; max-width: 460px; opacity: 0.85; }
+.brandbar__actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.brandbar__btn {
+  background: #F5A524; color: #3D2A02; border-radius: 100px; padding: 9px 18px;
+  font-weight: 600; font-size: 13px; text-decoration: none; white-space: nowrap;
+}
+.brandbar__btn:hover { background: #e2951a; }
+.brandbar__link { color: #EAF3EE; font-size: 12px; font-weight: 600; text-decoration: none; opacity: 0.9; }
+.brandbar__link:hover { text-decoration: underline; }

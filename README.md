@@ -1,6 +1,12 @@
 # LinkedIn ICP Pills
 
-A private Chrome extension that shows a small pill under people's names on LinkedIn:
+> I had one boring task: remembering who I had already reached out to before commenting on their LinkedIn post.
+> No existing tool did it. So I built one in a weekend, with AI doing most of the typing.
+>
+> That is the whole business. I'm **Vai S.** and I help B2B agency owners hand their boring tasks to AI.
+> 99% of the time you do not need a custom build like this one. [Here is what you do need.](https://efficialabs.com/ai-boring-task-fix/)
+
+A Chrome extension that shows a small pill under people's names on LinkedIn:
 
 - **ICP** (orange) – the person is a contact in your HubSpot CRM.
 - **Your own labels** (any colour) – e.g. "Top authority influencer", added by you.
@@ -41,3 +47,19 @@ The extension then downloads your contact list once and keeps a copy inside Chro
 - Everything is stored inside Chrome on this computer only. Nothing is sent anywhere except read-only calls to HubSpot.
 - LinkedIn changes its page code from time to time. If pills stop appearing in one place (e.g. comments), that part of the extension needs a small selector update. The core (feed, profile) uses several fallbacks.
 - The HubSpot token is like a password to read your contacts. Keep it private. You can revoke it any time in HubSpot → Private Apps.
+
+
+---
+
+## Who built this
+
+I'm **Vai S.**, ex-Accenture, and I run [Efficialabs](https://efficialabs.com/ai-boring-task-fix/).
+
+I help B2B agency owners take one tedious, click-heavy task and end it with AI. Usually that means the tools you already have: Claude, ChatGPT, connectors, plugins, MCP. No code, no vibecoding.
+
+Occasionally no existing tool does the job. This extension is one of those cases, and this is what the result looks like.
+
+- **One real AI use case a week, free:** [efficialabs.com](https://efficialabs.com/ai-boring-task-fix/#newsletter)
+- **Kill one of your boring tasks, $300, once:** [AI Boring-Task Fix](https://efficialabs.com/ai-boring-task-fix/)
+
+MIT licensed. Fork it, rename it, ship it inside your own tool. Tell me what you built.
