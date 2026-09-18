@@ -215,6 +215,7 @@
     if (key.querySelector(`.icpx-pills[data-icpx-slug="${CSS.escape(slug)}"]`)) return;
 
     const tags = resolveTags(slug, loc.name);
+    if (tags.length) recordFlag(slug, tags);
     const bar = buildPillBar(slug, loc.name, tags);
     if (loc.mode === 'append') loc.target.appendChild(bar);
     else loc.target.insertAdjacentElement('afterend', bar);
@@ -488,6 +489,162 @@
     }, true);
   }
 
+  // ---------- usage tracking (local only, never leaves the browser) ----------
+
+  const pending = new Map(); // slug -> {icp, manual}
+  let flushTimer = null;
+
+  function recordFlag(slug, tags) {
+    if (!slug) return;
+    const cur = pending.get(slug) || { icp: false, manual: false };
+    for (const t of tags) {
+      if (t.source === 'hubspot') cur.icp = true;
+      else cur.manual = true;
+    }
+    pending.set(slug, cur);
+    if (!flushTimer) flushTimer = setTimeout(flushStats, 5000);
+  }
+
+  async function flushStats() {
+    flushTimer = null;
+    if (!pending.size) return;
+    const batch = new Map(pending);
+    pending.clear();
+    try {
+      const { stats } = await S.storageGet('stats');
+      const st = stats && stats.people ? stats : S.EMPTY_STATS();
+      for (const [slug, v] of batch) {
+        const prev = st.people[slug] || { icp: false, manual: false };
+        st.people[slug] = { icp: prev.icp || v.icp, manual: prev.manual || v.manual };
+        st.moments = (st.moments || 0) + 1;
+      }
+      await S.storageSet({ stats: st });
+    } catch (e) {
+      recordError('flush stats', e);
+    }
+  }
+
+  window.addEventListener('pagehide', () => { if (pending.size) flushStats(); });
+
+  // ---------- the every-N-days insight card ----------
+
+  let cardEl = null;
+
+  function onFeedPage() {
+    const p = location.pathname;
+    return p === '/feed/' || p.startsWith('/feed') || p.startsWith('/search/results/content');
+  }
+
+  // Never interrupt: not while typing, not while a LinkedIn dialog is open.
+  function userIsBusy() {
+    const a = document.activeElement;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return true;
+    if (document.querySelector('[role="dialog"], .artdeco-modal')) return true;
+    return false;
+  }
+
+  async function maybeShowCard() {
+    try {
+      if (cardEl || !settings.insightsEnabled || !onFeedPage()) return;
+      const { stats } = await S.storageGet('stats');
+      const st = stats && stats.people ? stats : null;
+      if (!st) return;
+      const days = Math.floor((Date.now() - st.periodStart) / 86400000);
+      if (days < (settings.insightsDays || 14)) return;
+      const slugs = Object.keys(st.people || {});
+      if (slugs.length < (settings.insightsMin || 5)) return; // too quiet, wait longer
+      if (userIsBusy()) { setTimeout(maybeShowCard, 20000); return; }
+      showCard(st, days, slugs);
+    } catch (e) {
+      recordError('insight card', e);
+    }
+  }
+
+  function showCard(st, days, slugs) {
+    let icp = 0;
+    let manual = 0;
+    for (const sl of slugs) {
+      if (st.people[sl].icp) icp++;
+      if (st.people[sl].manual) manual++;
+    }
+    const total = slugs.length;
+
+    const card = document.createElement('div');
+    card.className = 'icpx-card';
+    card.setAttribute('role', 'complementary');
+    card.setAttribute('aria-label', 'LinkedIn ICP Pills, your last ' + days + ' days');
+
+    const detail = [
+      icp ? `${icp} already in your CRM` : '',
+      manual ? `${manual} with your own labels` : '',
+    ].filter(Boolean).join(' · ');
+
+    card.innerHTML = `
+      <button class="icpx-card__x" aria-label="Close">&times;</button>
+      <div class="icpx-card__eyebrow">YOUR LAST ${days} DAYS</div>
+      <div class="icpx-card__big">${total} <span>${total === 1 ? 'person' : 'people'}</span></div>
+      <div class="icpx-card__sub">ICP Pills told you who they were before you commented.${detail ? ` <span class="icpx-card__detail">${detail}</span>` : ''}</div>
+      <div class="icpx-card__rule"></div>
+      <div class="icpx-card__pitch">
+        That is ${total} times you did not stop to check HubSpot.
+        I'm Vai. I find boring tasks like that and end them, almost always without writing any code.
+      </div>
+      <a class="icpx-card__btn" href="https://efficialabs.com/ai-boring-task-fix/" target="_blank" rel="noopener">What is yours? Let's kill it</a>
+      <div class="icpx-card__foot">
+        <button class="icpx-card__link" data-act="later">Not now</button>
+        <button class="icpx-card__link" data-act="off">Stop showing these</button>
+      </div>
+    `;
+
+    card.addEventListener('click', (e) => e.stopPropagation());
+    card.querySelector('.icpx-card__x').addEventListener('click', () => closeCard('later'));
+    card.querySelector('[data-act="later"]').addEventListener('click', () => closeCard('later'));
+    card.querySelector('[data-act="off"]').addEventListener('click', () => closeCard('off'));
+    card.querySelector('.icpx-card__btn').addEventListener('click', () => closeCard('clicked'));
+
+    document.body.appendChild(card);
+    requestAnimationFrame(() => card.classList.add('icpx-card--in'));
+    cardEl = card;
+    document.addEventListener('keydown', cardKey, true);
+    // Reset the period now, so it cannot reappear in another tab this session.
+    resetPeriod();
+  }
+
+  function cardKey(e) {
+    if (e.key === 'Escape' && cardEl) { e.stopPropagation(); closeCard('later'); }
+  }
+
+  async function closeCard(reason) {
+    if (!cardEl) return;
+    const el = cardEl;
+    cardEl = null;
+    document.removeEventListener('keydown', cardKey, true);
+    el.classList.remove('icpx-card--in');
+    setTimeout(() => el.remove(), 250);
+    if (reason === 'off') {
+      settings = Object.assign({}, settings, { insightsEnabled: false });
+      await S.storageSet({ settings });
+    }
+  }
+
+  async function resetPeriod() {
+    try {
+      const { stats } = await S.storageGet('stats');
+      const st = stats && stats.people ? stats : S.EMPTY_STATS();
+      await S.storageSet({
+        stats: {
+          periodStart: Date.now(),
+          people: {},
+          moments: 0,
+          shown: (st.shown || 0) + 1,
+          lastShown: Date.now(),
+        },
+      });
+    } catch (e) {
+      recordError('reset period', e);
+    }
+  }
+
   // ---------- boot ----------
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -497,6 +654,8 @@
     sendResponse({
       nameEl: nameEl ? `${nameEl.tagName.toLowerCase()} "${nameEl.textContent.trim().slice(0, 40)}"` : null,
       clicksSeen,
+      cardShowing: !!cardEl,
+      insightsOn: settings.insightsEnabled !== false,
       version: VERSION,
       url: location.href,
       pageSlug: pageSlug(),
@@ -521,6 +680,13 @@
       recordError('load data', e);
     }
     try { scan(); } catch (e) { recordError('first scan', e); }
+
+    // Make sure a counting period exists, then consider the card once,
+    // well after the page has settled so it never competes with load.
+    S.storageGet('stats').then(({ stats }) => {
+      if (!stats || !stats.people) return S.storageSet({ stats: S.EMPTY_STATS() });
+    }).catch(() => {});
+    setTimeout(maybeShowCard, 8000);
     chrome.runtime.sendMessage({ type: 'ensureFresh' }, () => void chrome.runtime.lastError);
 
     const observer = new MutationObserver((mutations) => {

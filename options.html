@@ -115,9 +115,36 @@
         <span id="ioStatus" class="status"></span>
       </div>
     </section>
+    <!-- Insights -->
+    <section class="card">
+      <h2>3. Your activity</h2>
+      <p class="muted">Counted on your own machine. These numbers are never sent anywhere.</p>
+
+      <div id="statsBox" class="statsbox"></div>
+
+      <label class="check">
+        <input id="insightsEnabled" type="checkbox" checked />
+        <span>Show me a summary card on LinkedIn every so often
+          <small class="muted">A small card in the bottom corner. Close it with the ×, Escape, or "Not now". It never blocks the page.</small></span>
+      </label>
+
+      <label class="field">
+        <span>Show that card every</span>
+        <div class="row">
+          <input id="insightsDays" type="number" min="1" max="90" step="1" value="14" style="max-width:90px" />
+          <span class="muted">days</span>
+        </div>
+        <small class="muted">Skipped automatically if there is almost nothing to report, so it never shows you an empty summary.</small>
+      </label>
+
+      <div class="row space">
+        <button id="resetStats" class="btn" type="button">Reset these counts</button>
+      </div>
+    </section>
+
     <!-- Diagnostics -->
     <section class="card">
-      <h2>3. Diagnostics</h2>
+      <h2>4. Diagnostics</h2>
       <p class="muted">If something does not look right on LinkedIn, keep a LinkedIn tab open, click the button, and send a screenshot of this box.</p>
       <div class="row">
         <button id="diagBtn" class="btn" type="button">Check now</button>

@@ -107,3 +107,11 @@ tr.editing td { background: #faf5ff; }
 .brandbar__btn:hover { background: #e2951a; }
 .brandbar__link { color: #EAF3EE; font-size: 12px; font-weight: 600; text-decoration: none; opacity: 0.9; }
 .brandbar__link:hover { text-decoration: underline; }
+
+.statsbox { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 4px; }
+.statbox {
+  flex: 1 1 150px; background: #EAF3EE; border-radius: 12px; padding: 14px 16px;
+}
+.statbox__n { font-size: 26px; font-weight: 700; color: #06503C; line-height: 1.1; }
+.statbox__l { font-size: 12px; color: #4A5551; margin-top: 3px; }
+.statsbox__empty { color: var(--muted); font-size: 13px; padding: 6px 0; }

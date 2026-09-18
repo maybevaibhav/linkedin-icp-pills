@@ -371,6 +371,53 @@ $('importFile').addEventListener('change', async (e) => {
   e.target.value = '';
 });
 
+// ---------- Activity / insights ----------
+
+function renderStats(stats) {
+  const box = $('statsBox');
+  box.innerHTML = '';
+  const st = stats && stats.people ? stats : null;
+  const slugs = st ? Object.keys(st.people || {}) : [];
+  if (!slugs.length) {
+    box.innerHTML = '<div class="statsbox__empty">Nothing counted yet. Browse LinkedIn with the extension running and come back.</div>';
+    return;
+  }
+  let icp = 0;
+  let manual = 0;
+  for (const sl of slugs) {
+    if (st.people[sl].icp) icp++;
+    if (st.people[sl].manual) manual++;
+  }
+  const days = Math.max(1, Math.floor((Date.now() - st.periodStart) / 86400000));
+  const cells = [
+    [slugs.length, `people flagged in the last ${days} day${days === 1 ? '' : 's'}`],
+    [icp, 'already in your HubSpot'],
+    [manual, 'with your own labels'],
+  ];
+  for (const [n, l] of cells) {
+    const d = document.createElement('div');
+    d.className = 'statbox';
+    d.innerHTML = `<div class="statbox__n"></div><div class="statbox__l"></div>`;
+    d.querySelector('.statbox__n').textContent = n;
+    d.querySelector('.statbox__l').textContent = l;
+    box.appendChild(d);
+  }
+}
+
+$('insightsEnabled').addEventListener('change', (e) => saveSettings({ insightsEnabled: e.target.checked }));
+$('insightsDays').addEventListener('change', (e) => {
+  let d = parseInt(e.target.value, 10);
+  if (!(d >= 1)) d = 1;
+  if (d > 90) d = 90;
+  e.target.value = d;
+  saveSettings({ insightsDays: d });
+});
+$('resetStats').addEventListener('click', async () => {
+  await S.storageSet({ stats: S.EMPTY_STATS() });
+  const { stats } = await S.storageGet('stats');
+  renderStats(stats);
+});
+
 // ---------- Diagnostics ----------
 
 function fmtDiag(d) {
@@ -393,7 +440,7 @@ function fmtDiag(d) {
     lines.push(`  script version ${t.version}, profile links on page: ${t.profileAnchors}, pill bars: ${t.bars}, pills: ${t.pills}`);
     lines.push(`  data in page: ${t.contactsBySlug} contacts by URL, ${t.contactsByName} by name, ${t.labels} labelled people, name matching ${t.nameMatching ? 'on' : 'off'}`);
     if (t.pageSlug) lines.push(`  profile page for: ${t.pageSlug}, name element: ${t.nameEl || 'NOT FOUND'}`);
-    lines.push(`  "+" presses received: ${t.clicksSeen}`);
+    lines.push(`  "+" presses received: ${t.clicksSeen}, summary card showing: ${t.cardShowing ? 'yes' : 'no'}, card enabled: ${t.insightsOn ? 'yes' : 'no'}`);
     if (t.errors && t.errors.length) { lines.push('  errors:'); for (const e of t.errors) lines.push(`    ${e}`); }
     else lines.push('  errors: none');
   }
@@ -414,7 +461,7 @@ $('diagCopy').addEventListener('click', async () => {
 // ---------- boot ----------
 
 (async () => {
-  const data = await S.storageGet(['settings', 'manualTags', 'syncStatus']);
+  const data = await S.storageGet(['settings', 'manualTags', 'syncStatus', 'stats']);
   settings = Object.assign({}, S.DEFAULT_SETTINGS, data.settings || {});
   manualTags = data.manualTags || {};
 
@@ -422,6 +469,9 @@ $('diagCopy').addEventListener('click', async () => {
   $('nameMatching').checked = settings.nameMatching !== false;
   $('hubspotLabel').value = settings.hubspotLabel || 'ICP';
   $('syncDays').value = settings.syncDays || 7;
+  $('insightsEnabled').checked = settings.insightsEnabled !== false;
+  $('insightsDays').value = settings.insightsDays || 14;
+  renderStats(data.stats);
   colorOptions($('addColor'), 'purple');
   renderSyncStatus(data.syncStatus);
   renderTags();
@@ -436,5 +486,10 @@ $('diagCopy').addEventListener('click', async () => {
     if (area !== 'local') return;
     if (changes.syncStatus) renderSyncStatus(changes.syncStatus.newValue);
     if (changes.manualTags) { manualTags = changes.manualTags.newValue || {}; renderTags(); }
+    if (changes.stats) renderStats(changes.stats.newValue);
+    if (changes.settings && changes.settings.newValue) {
+      settings = Object.assign({}, S.DEFAULT_SETTINGS, changes.settings.newValue);
+      $('insightsEnabled').checked = settings.insightsEnabled !== false;
+    }
   });
 })();

@@ -42,6 +42,16 @@ The extension then downloads your contact list once and keeps a copy inside Chro
 - **From LinkedIn:** hover over a name, click the small **+** that appears next to the pills, type a label, pick a colour, click **Add label**. Same place to remove a label.
 - **From settings:** paste a LinkedIn profile URL, type the label, click **Add**. The table lists everyone you have labelled. **Edit** on a row lets you change the name, rename labels, change colours, or add and remove labels. Use **Export backup** occasionally so you never lose your list.
 
+## Your activity summary
+
+The extension counts, on your own machine, how many people it flagged for you. Open settings to see the numbers any time.
+
+Every 14 days a small card appears in the bottom corner of LinkedIn with a summary of that period. It never blocks the page, never interrupts you while you are typing a comment, and closes with the ×, the Escape key, or "Not now". If you would rather not see it, click "Stop showing these" on the card, or turn it off in settings. You can also change 14 days to anything from 1 to 90.
+
+If there is almost nothing to report, the card is skipped and waits for the next period, so it never shows you an empty summary.
+
+These counts are stored in your browser and are never sent anywhere, including to me.
+
 ## Things to know
 
 - Everything is stored inside Chrome on this computer only. Nothing is sent anywhere except read-only calls to HubSpot.

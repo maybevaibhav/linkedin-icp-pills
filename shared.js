@@ -81,6 +81,9 @@ const ICPX = (() => {
     nameMatching: true,
     hubspotLabel: 'ICP',
     syncDays: 7,
+    insightsEnabled: true,
+    insightsDays: 14,
+    insightsMin: 5,
   };
 
   async function getSettings() {
@@ -88,7 +91,10 @@ const ICPX = (() => {
     return Object.assign({}, DEFAULT_SETTINGS, settings || {});
   }
 
+  const EMPTY_STATS = () => ({ periodStart: Date.now(), people: {}, moments: 0, shown: 0, lastShown: 0 });
+
   return {
+    EMPTY_STATS,
     STALE_MS, INDEX_SCHEMA, COLORS, LIFECYCLE_LABELS, DEFAULT_SETTINGS,
     slugFromUrl, normName, isStale, storageGet, storageSet, getSettings,
   };
