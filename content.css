@@ -18,7 +18,25 @@
   font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 .icpx-pills--profile { margin: 6px 0 2px; }
-.icpx-pills--empty { min-height: 0; }
+/* No label for this person: the bar carries only the hover "+", so it must sit
+   inline beside the name and contribute no height. Otherwise every unlabelled
+   person in the feed gets a blank line under their name. */
+.icpx-pills--empty {
+  display: inline-flex !important;
+  vertical-align: middle;
+  align-self: center;
+  margin: 0 0 0 6px !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  max-height: 18px;
+  gap: 0;
+}
+.icpx-pills--empty .icpx-add {
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  line-height: 14px;
+}
 
 .icpx-pill {
   display: inline-flex;

@@ -217,6 +217,14 @@
     const tags = resolveTags(slug, loc.name);
     if (tags.length) recordFlag(slug, tags);
     const bar = buildPillBar(slug, loc.name, tags);
+
+    if (!tags.length) {
+      // Nothing to show for this person. Put the "+" inside the name element so it
+      // sits just right of the name and adds no line of its own. An empty bar placed
+      // after the name would reserve a whole row and leave a blank gap.
+      loc.target.appendChild(bar);
+      return;
+    }
     if (loc.mode === 'append') loc.target.appendChild(bar);
     else loc.target.insertAdjacentElement('afterend', bar);
     requestAnimationFrame(() => fixOverlap(bar, loc.target, key));

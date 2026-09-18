@@ -39,7 +39,8 @@ The extension then downloads your contact list once and keeps a copy inside Chro
 
 ## Your own labels
 
-- **From LinkedIn:** hover over a name, click the small **+** that appears next to the pills, type a label, pick a colour, click **Add label**. Same place to remove a label.
+- **From LinkedIn:** hover over a name, click the small **+**, type a label, pick a colour, click **Add label**. Same place to remove a label.
+  For someone who has no label yet the **+** sits just to the right of their name and takes no extra space, so unlabelled people look exactly as they did before. Once a label exists it appears on its own row under the name.
 - **From settings:** paste a LinkedIn profile URL, type the label, click **Add**. The table lists everyone you have labelled. **Edit** on a row lets you change the name, rename labels, change colours, or add and remove labels. Use **Export backup** occasionally so you never lose your list.
 
 ## Your activity summary
