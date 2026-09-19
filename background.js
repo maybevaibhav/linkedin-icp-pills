@@ -47,6 +47,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           return sendResponse({ ok: true, data: await detectLinkedinProperties(msg.token) });
         case 'diag':
           return sendResponse({ ok: true, data: await collectDiagnostics() });
+        case 'syncNowDevices':
+          await pushToSync();
+          await pullFromSync();
+          return sendResponse({ ok: true });
         case 'openOptions':
           chrome.runtime.openOptionsPage();
           return sendResponse({ ok: true });
@@ -238,3 +242,139 @@ async function collectDiagnostics() {
     tabs: results,
   };
 }
+
+// ---------- Cross-device sync ------------------------------------------------
+// Labels and settings ride Chrome's own profile sync so both of your computers
+// agree. The HubSpot contact copy is deliberately NOT synced: thousands of
+// records blow past the 100KB sync quota, and each machine rebuilds it from
+// HubSpot in about a minute.
+//
+// Everything here is written to survive the trap that caused the scroll jump:
+// a write that triggers a change event that triggers another write. Every path
+// compares content first and refuses to write when nothing actually differs.
+
+const SYNC_TAG_PREFIX = 'tags_';
+const SYNC_SETTINGS_KEY = 'cfg';
+let applyingRemote = false;
+let pushTimer = null;
+
+// Stable stringify so key order never makes identical data look different.
+function stableStr(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(stableStr).join(',') + ']';
+  return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + stableStr(v[k])).join(',') + '}';
+}
+
+function tagShardKeys() {
+  const keys = [];
+  for (let i = 0; i < ICPX.SYNC_SHARDS; i++) keys.push(SYNC_TAG_PREFIX + i);
+  return keys;
+}
+
+function splitIntoShards(map) {
+  const shards = {};
+  for (let i = 0; i < ICPX.SYNC_SHARDS; i++) shards[SYNC_TAG_PREFIX + i] = {};
+  for (const slug of Object.keys(map || {})) {
+    shards[SYNC_TAG_PREFIX + ICPX.shardOf(slug)][slug] = map[slug];
+  }
+  return shards;
+}
+
+function joinShards(obj) {
+  const out = {};
+  for (const k of tagShardKeys()) Object.assign(out, (obj || {})[k] || {});
+  return out;
+}
+
+// Settings that belong on every machine. The HubSpot key only travels if the
+// user explicitly asked for it, so the "nothing leaves your browser" promise
+// holds by default.
+function syncableSettings(settings) {
+  const s = Object.assign({}, settings);
+  delete s.token;
+  if (settings.syncToken && settings.token) s.token = settings.token;
+  return s;
+}
+
+async function setSyncStatus(patch) {
+  const { deviceSync } = await ICPX.storageGet('deviceSync');
+  await ICPX.storageSet({ deviceSync: Object.assign({}, deviceSync || {}, patch) });
+}
+
+function schedulePush() {
+  if (applyingRemote) return;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => { pushTimer = null; pushToSync().catch(() => {}); }, 1500);
+}
+
+async function pushToSync() {
+  const { manualTags, settings } = await ICPX.storageGet(['manualTags', 'settings']);
+  const cfg = Object.assign({}, ICPX.DEFAULT_SETTINGS, settings || {});
+  if (cfg.syncAcrossDevices === false) return;
+
+  const tags = ICPX.purgeTombstones(manualTags || {});
+  const wantShards = splitIntoShards(tags);
+  const wantCfg = syncableSettings(cfg);
+
+  const have = await ICPX.syncGet(tagShardKeys().concat([SYNC_SETTINGS_KEY]));
+  const changed = {};
+  for (const k of tagShardKeys()) {
+    if (stableStr(have[k] || {}) !== stableStr(wantShards[k])) changed[k] = wantShards[k];
+  }
+  if (stableStr(have[SYNC_SETTINGS_KEY] || {}) !== stableStr(wantCfg)) changed[SYNC_SETTINGS_KEY] = wantCfg;
+  if (!Object.keys(changed).length) return; // nothing new, do not write
+
+  try {
+    await ICPX.syncSet(changed);
+    await setSyncStatus({ state: 'ok', lastPush: Date.now(), message: `Sent ${Object.keys(ICPX.activeTags(tags)).length} labelled people to your other computers.` });
+  } catch (e) {
+    const quota = /QUOTA/i.test(e.message || '');
+    await setSyncStatus({
+      state: 'error',
+      message: quota
+        ? 'Your label list is too large for Chrome sync (about 100KB). Labels on this computer still work. Use Export backup to move them.'
+        : `Sync failed: ${e.message}`,
+    });
+  }
+}
+
+async function pullFromSync() {
+  const { manualTags, settings } = await ICPX.storageGet(['manualTags', 'settings']);
+  const cfg = Object.assign({}, ICPX.DEFAULT_SETTINGS, settings || {});
+  if (cfg.syncAcrossDevices === false) return;
+
+  const remote = await ICPX.syncGet(tagShardKeys().concat([SYNC_SETTINGS_KEY]));
+  const remoteTags = joinShards(remote);
+  const merged = ICPX.purgeTombstones(ICPX.mergeTagMaps(manualTags || {}, remoteTags));
+
+  const remoteCfg = remote[SYNC_SETTINGS_KEY] || null;
+  let nextCfg = cfg;
+  if (remoteCfg) {
+    // Never let a remote copy blank out the key this machine already has.
+    const token = (cfg.syncToken && remoteCfg.token) ? remoteCfg.token : cfg.token;
+    nextCfg = Object.assign({}, cfg, remoteCfg, { token });
+  }
+
+  const writes = {};
+  if (stableStr(merged) !== stableStr(manualTags || {})) writes.manualTags = merged;
+  if (stableStr(nextCfg) !== stableStr(cfg)) writes.settings = nextCfg;
+  if (!Object.keys(writes).length) return; // already in step, do not write
+
+  applyingRemote = true;
+  try {
+    await ICPX.storageSet(writes);
+    await setSyncStatus({ state: 'ok', lastPull: Date.now(), message: `Updated from your other computer: ${Object.keys(ICPX.activeTags(merged)).length} labelled people.` });
+  } finally {
+    // Release only after the resulting change events have been delivered.
+    setTimeout(() => { applyingRemote = false; }, 500);
+  }
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && (changes.manualTags || changes.settings)) schedulePush();
+  if (area === 'sync') pullFromSync().catch(() => {});
+});
+
+// Catch up whenever this machine wakes up or the extension reloads.
+chrome.runtime.onStartup.addListener(() => pullFromSync().catch(() => {}));
+chrome.runtime.onInstalled.addListener(() => pullFromSync().catch(() => {}));

@@ -84,6 +84,8 @@ const ICPX = (() => {
     insightsEnabled: true,
     insightsDays: 14,
     insightsMin: 5,
+    syncAcrossDevices: true,
+    syncToken: false,
   };
 
   async function getSettings() {
@@ -91,10 +93,68 @@ const ICPX = (() => {
     return Object.assign({}, DEFAULT_SETTINGS, settings || {});
   }
 
+  // ---- Cross-device sync helpers -------------------------------------------
+  // chrome.storage.sync caps each item at 8KB and the whole area at 100KB, so the
+  // label list is spread over a few keys. The HubSpot contact copy is never synced:
+  // it is thousands of records, far past the quota, and each machine can rebuild it
+  // from HubSpot in about a minute.
+  const SYNC_SHARDS = 8;
+  const TOMBSTONE_MS = 60 * 24 * 60 * 60 * 1000; // remember a deletion for 60 days
+
+  function shardOf(slug) {
+    let h = 0;
+    for (let i = 0; i < slug.length; i++) h = (h * 31 + slug.charCodeAt(i)) | 0;
+    return Math.abs(h) % SYNC_SHARDS;
+  }
+
+  // Entries the user should actually see: not deleted, and carrying at least one label.
+  function activeTags(map) {
+    const out = {};
+    for (const k of Object.keys(map || {})) {
+      const v = map[k];
+      if (v && !v.deleted && Array.isArray(v.tags) && v.tags.length) out[k] = v;
+    }
+    return out;
+  }
+
+  // Per-person last-write-wins. Each entry already carries an `updated` stamp.
+  function mergeTagMaps(a, b) {
+    const out = {};
+    const keys = new Set(Object.keys(a || {}).concat(Object.keys(b || {})));
+    for (const k of keys) {
+      const x = (a || {})[k];
+      const y = (b || {})[k];
+      if (!x) out[k] = y;
+      else if (!y) out[k] = x;
+      else out[k] = (y.updated || 0) > (x.updated || 0) ? y : x;
+    }
+    return out;
+  }
+
+  function purgeTombstones(map) {
+    const out = {};
+    const cutoff = Date.now() - TOMBSTONE_MS;
+    for (const k of Object.keys(map || {})) {
+      const v = map[k];
+      if (v && v.deleted && (v.updated || 0) < cutoff) continue;
+      out[k] = v;
+    }
+    return out;
+  }
+
+  function syncGet(keys) {
+    return new Promise((resolve) => chrome.storage.sync.get(keys, (r) => resolve(chrome.runtime.lastError ? {} : r)));
+  }
+  function syncSet(obj) {
+    return new Promise((resolve, reject) => chrome.storage.sync.set(obj, () =>
+      chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve()));
+  }
+
   const EMPTY_STATS = () => ({ periodStart: Date.now(), people: {}, moments: 0, shown: 0, lastShown: 0 });
 
   return {
     EMPTY_STATS,
+    SYNC_SHARDS, shardOf, activeTags, mergeTagMaps, purgeTombstones, syncGet, syncSet,
     STALE_MS, INDEX_SCHEMA, COLORS, LIFECYCLE_LABELS, DEFAULT_SETTINGS,
     slugFromUrl, normName, isStale, storageGet, storageSet, getSettings,
   };

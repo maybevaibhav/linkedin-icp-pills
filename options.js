@@ -137,7 +137,7 @@ function pillEl(label, color) {
 
 function allLabels() {
   const set = new Set();
-  for (const e of Object.values(manualTags)) for (const t of e.tags || []) set.add(t.label);
+  for (const e of Object.values(S.activeTags(manualTags))) for (const t of e.tags || []) set.add(t.label);
   return Array.from(set).sort();
 }
 
@@ -145,7 +145,7 @@ function renderTags() {
   const tbody = $('tagsTable').querySelector('tbody');
   tbody.innerHTML = '';
   const q = $('filter').value.trim().toLowerCase();
-  const entries = Object.entries(manualTags)
+  const entries = Object.entries(S.activeTags(manualTags))
     .sort((a, b) => (b[1].updated || 0) - (a[1].updated || 0))
     .filter(([slug, e]) => {
       if (!q) return true;
@@ -153,7 +153,7 @@ function renderTags() {
       return hay.includes(q);
     });
 
-  $('count').textContent = `${Object.keys(manualTags).length} people`;
+  $('count').textContent = `${Object.keys(S.activeTags(manualTags)).length} people`;
   $('empty').hidden = entries.length > 0;
   $('tagsTable').hidden = entries.length === 0;
 
@@ -304,7 +304,8 @@ function renderEditRow(tr, slug, e) {
 async function updateEntry(slug, name, tags) {
   const next = Object.assign({}, manualTags);
   if (tags.length) next[slug] = { name: name || (next[slug] && next[slug].name) || '', tags, updated: Date.now() };
-  else delete next[slug];
+  // A tombstone, not a plain delete, so the removal travels to your other computer.
+  else next[slug] = { name: (next[slug] && next[slug].name) || name || '', deleted: true, updated: Date.now() };
   manualTags = next;
   await S.storageSet({ manualTags: next });
   renderTags();
@@ -330,7 +331,7 @@ $('addForm').addEventListener('submit', async (e) => {
 $('filter').addEventListener('input', renderTags);
 
 $('exportBtn').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify({ manualTags, exported: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ manualTags: S.activeTags(manualTags), exported: new Date().toISOString() }, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -369,6 +370,32 @@ $('importFile').addEventListener('change', async (e) => {
     setStatus($('ioStatus'), `Import failed: ${err.message}`, 'err');
   }
   e.target.value = '';
+});
+
+// ---------- Cross-device sync ----------
+
+function renderDeviceSync(ds) {
+  const el = $('deviceSyncStatus');
+  if (!settings.syncAcrossDevices) return setStatus(el, 'Turned off. This computer keeps its own labels.');
+  if (!ds || (!ds.lastPush && !ds.lastPull)) return setStatus(el, 'Waiting for the first sync.');
+  if (ds.state === 'error') return setStatus(el, ds.message, 'err');
+  const when = Math.max(ds.lastPush || 0, ds.lastPull || 0);
+  setStatus(el, `${ds.message} Last exchange: ${fmtTime(when)}.`, 'ok');
+}
+
+$('syncAcrossDevices').addEventListener('change', async (e) => {
+  await saveSettings({ syncAcrossDevices: e.target.checked });
+  if (e.target.checked) await send({ type: 'syncNowDevices' });
+  const { deviceSync } = await S.storageGet('deviceSync');
+  renderDeviceSync(deviceSync);
+});
+$('syncToken').addEventListener('change', (e) => saveSettings({ syncToken: e.target.checked }));
+$('syncDevicesNow').addEventListener('click', async () => {
+  setStatus($('deviceSyncStatus'), 'Syncing…');
+  const res = await send({ type: 'syncNowDevices' });
+  if (!res.ok) return setStatus($('deviceSyncStatus'), res.error, 'err');
+  const { deviceSync } = await S.storageGet('deviceSync');
+  renderDeviceSync(deviceSync);
 });
 
 // ---------- Activity / insights ----------
@@ -461,7 +488,7 @@ $('diagCopy').addEventListener('click', async () => {
 // ---------- boot ----------
 
 (async () => {
-  const data = await S.storageGet(['settings', 'manualTags', 'syncStatus', 'stats']);
+  const data = await S.storageGet(['settings', 'manualTags', 'syncStatus', 'stats', 'deviceSync']);
   settings = Object.assign({}, S.DEFAULT_SETTINGS, data.settings || {});
   manualTags = data.manualTags || {};
 
@@ -471,6 +498,9 @@ $('diagCopy').addEventListener('click', async () => {
   $('syncDays').value = settings.syncDays || 7;
   $('insightsEnabled').checked = settings.insightsEnabled !== false;
   $('insightsDays').value = settings.insightsDays || 14;
+  $('syncAcrossDevices').checked = settings.syncAcrossDevices !== false;
+  $('syncToken').checked = !!settings.syncToken;
+  renderDeviceSync(data.deviceSync);
   renderStats(data.stats);
   colorOptions($('addColor'), 'purple');
   renderSyncStatus(data.syncStatus);
@@ -487,6 +517,7 @@ $('diagCopy').addEventListener('click', async () => {
     if (changes.syncStatus) renderSyncStatus(changes.syncStatus.newValue);
     if (changes.manualTags) { manualTags = changes.manualTags.newValue || {}; renderTags(); }
     if (changes.stats) renderStats(changes.stats.newValue);
+    if (changes.deviceSync) renderDeviceSync(changes.deviceSync.newValue);
     if (changes.settings && changes.settings.newValue) {
       settings = Object.assign({}, S.DEFAULT_SETTINGS, changes.settings.newValue);
       $('insightsEnabled').checked = settings.insightsEnabled !== false;

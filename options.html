@@ -115,9 +115,49 @@
         <span id="ioStatus" class="status"></span>
       </div>
     </section>
+    <!-- Cross-device sync -->
+    <section class="card">
+      <h2>3. Your other computers</h2>
+      <p class="muted">
+        Your labels and settings travel to every computer signed in to this same Chrome profile.
+        Your HubSpot contact list is not sent anywhere: it is far too large for Chrome sync, and each
+        computer rebuilds its own copy from HubSpot in about a minute.
+      </p>
+
+      <label class="check">
+        <input id="syncAcrossDevices" type="checkbox" checked />
+        <span>Keep my labels and settings the same on all my computers
+          <small class="muted">Uses Chrome's own sync. Both computers must be signed in to the same Chrome profile.</small></span>
+      </label>
+
+      <label class="check">
+        <input id="syncToken" type="checkbox" />
+        <span>Also carry my HubSpot key across
+          <small class="muted">Off by default, because this is the one piece of data that would leave your machine, via Google's sync. Leave it off and paste the key once on each computer instead.</small></span>
+      </label>
+
+      <div class="row space">
+        <button id="syncDevicesNow" class="btn" type="button">Sync with my other computers now</button>
+        <div id="deviceSyncStatus" class="status"></div>
+      </div>
+
+      <details class="howto">
+        <summary>Setting up your second computer</summary>
+        <ol>
+          <li>Copy the extension folder to that computer, or download the same zip again.</li>
+          <li>Open <code>chrome://extensions</code>, turn on <b>Developer mode</b>, click <b>Load unpacked</b> and pick the folder.</li>
+          <li>Your labels appear on their own within a minute. If the box above is unticked, paste your HubSpot key there and click <b>Test &amp; save</b>.</li>
+        </ol>
+        <p class="muted small">
+          Chrome does not sync extensions that were loaded this way, so the extension folder itself has to be
+          copied to each computer, and updated on each computer when a new version arrives.
+        </p>
+      </details>
+    </section>
+
     <!-- Insights -->
     <section class="card">
-      <h2>3. Your activity</h2>
+      <h2>4. Your activity</h2>
       <p class="muted">Counted on your own machine. These numbers are never sent anywhere.</p>
 
       <div id="statsBox" class="statsbox"></div>
@@ -144,7 +184,7 @@
 
     <!-- Diagnostics -->
     <section class="card">
-      <h2>4. Diagnostics</h2>
+      <h2>5. Diagnostics</h2>
       <p class="muted">If something does not look right on LinkedIn, keep a LinkedIn tab open, click the button, and send a screenshot of this box.</p>
       <div class="row">
         <button id="diagBtn" class="btn" type="button">Check now</button>

@@ -43,6 +43,19 @@ The extension then downloads your contact list once and keeps a copy inside Chro
   For someone who has no label yet the **+** sits just to the right of their name and takes no extra space, so unlabelled people look exactly as they did before. Once a label exists it appears on its own row under the name.
 - **From settings:** paste a LinkedIn profile URL, type the label, click **Add**. The table lists everyone you have labelled. **Edit** on a row lets you change the name, rename labels, change colours, or add and remove labels. Use **Export backup** occasionally so you never lose your list.
 
+## Using more than one computer
+
+Two separate things have to reach your second computer.
+
+**The extension itself does not travel.** Chrome never syncs extensions that were loaded with "Load unpacked", so copy the folder to the other computer and load it there the same way. You also have to repeat that on each computer when a new version arrives. Publishing to the Chrome Web Store as an **Unlisted** item removes this chore entirely: it installs in one click, syncs by itself, and updates both computers automatically, while still being reachable only by direct link.
+
+**Your labels and settings do travel**, as long as both computers are signed in to the same Chrome profile. Nothing extra to set up. Add a label on one machine and it appears on the other within a minute, and deleting one removes it in both places.
+
+Two things are deliberately left out:
+
+- **Your HubSpot contact list is never synced.** It is thousands of records, far past Chrome's 100KB sync limit. Each computer simply builds its own copy from HubSpot in about a minute.
+- **Your HubSpot key stays put by default.** It is the one piece of data that would leave your machine, by way of Google's sync servers. Paste it once on each computer, or tick "Also carry my HubSpot key across" in settings if you would rather it travelled.
+
 ## Your activity summary
 
 The extension counts, on your own machine, how many people it flagged for you. Open settings to see the numbers any time.

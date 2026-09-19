@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn ICP Pills",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "Shows a pill under people's names on LinkedIn: ICP (from your HubSpot CRM) or your own custom labels.",
   "permissions": ["storage", "alarms", "unlimitedStorage"],
   "host_permissions": [

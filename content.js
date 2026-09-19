@@ -389,7 +389,8 @@
     ed.style.top = `${rect.bottom + window.scrollY + 6}px`;
     ed.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 320)}px`;
 
-    const entry = manualTags[slug] || { name, tags: [] };
+    const known = manualTags[slug];
+    const entry = (known && !known.deleted && Array.isArray(known.tags)) ? known : { name: (known && known.name) || name, tags: [] };
     const hs = hubspotIndex.bySlug && hubspotIndex.bySlug[slug];
 
     ed.innerHTML = `
@@ -472,7 +473,9 @@
   async function saveManual(slug, name, tags) {
     const next = Object.assign({}, manualTags);
     if (tags.length) next[slug] = { name: name || (next[slug] && next[slug].name) || '', tags, updated: Date.now() };
-    else delete next[slug];
+    // Record the removal rather than dropping the key, so the deletion reaches
+    // your other computer instead of that machine syncing the label back.
+    else next[slug] = { name: (next[slug] && next[slug].name) || name || '', deleted: true, updated: Date.now() };
     manualTags = next;
     await S.storageSet({ manualTags: next });
   }
