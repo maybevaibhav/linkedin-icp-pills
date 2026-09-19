@@ -31,10 +31,24 @@
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    if (changes.hubspotIndex) hubspotIndex = changes.hubspotIndex.newValue || { bySlug: {}, byName: {} };
-    if (changes.manualTags) manualTags = changes.manualTags.newValue || {};
-    if (changes.settings) settings = Object.assign({}, S.DEFAULT_SETTINGS, changes.settings.newValue || {});
-    rerenderAll();
+    let redraw = false;
+    if (changes.hubspotIndex) {
+      hubspotIndex = changes.hubspotIndex.newValue || { bySlug: {}, byName: {} };
+      redraw = true;
+    }
+    if (changes.manualTags) {
+      manualTags = changes.manualTags.newValue || {};
+      redraw = true;
+    }
+    if (changes.settings) {
+      const before = settings;
+      settings = Object.assign({}, S.DEFAULT_SETTINGS, changes.settings.newValue || {});
+      if (before.nameMatching !== settings.nameMatching || before.hubspotLabel !== settings.hubspotLabel) redraw = true;
+    }
+    // "stats" is written every few seconds while you browse and never changes what
+    // is drawn. Redrawing on it tore out and re-added every pill, which shrank and
+    // then regrew the page and made LinkedIn jump. Only redraw for pill data.
+    if (redraw) rerenderAll();
   });
 
   // ---------- matching ----------
@@ -322,9 +336,11 @@
   }
 
   function rerenderAll() {
-    document.querySelectorAll('.icpx-pills').forEach((n) => n.remove());
+    // Clear the markers only. renderFor swaps each bar for its replacement in the
+    // same step, so the page never briefly loses its pills and does not shift.
     document.querySelectorAll('[data-icpx-done]').forEach((n) => delete n.dataset.icpxDone);
     document.querySelectorAll('[data-icpx-seen]').forEach((n) => delete n.dataset.icpxSeen);
+    profileBar = null;
     scheduleScan();
   }
 
@@ -521,11 +537,17 @@
     try {
       const { stats } = await S.storageGet('stats');
       const st = stats && stats.people ? stats : S.EMPTY_STATS();
+      let changed = false;
       for (const [slug, v] of batch) {
-        const prev = st.people[slug] || { icp: false, manual: false };
-        st.people[slug] = { icp: prev.icp || v.icp, manual: prev.manual || v.manual };
+        const prev = st.people[slug];
+        const icp = (prev && prev.icp) || v.icp;
+        const manual = (prev && prev.manual) || v.manual;
+        if (prev && prev.icp === icp && prev.manual === manual) continue; // already counted
+        st.people[slug] = { icp, manual };
         st.moments = (st.moments || 0) + 1;
+        changed = true;
       }
+      if (!changed) return; // seeing the same people again is not news, do not write
       await S.storageSet({ stats: st });
     } catch (e) {
       recordError('flush stats', e);
