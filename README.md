@@ -1,5 +1,8 @@
 # LinkedIn ICP Pills
 
+<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/80f63c94-5b91-46fb-a36b-7b9d0add65d9" />
+
+
 > I had one boring task: remembering who I had already reached out to before commenting on their LinkedIn post.
 > No existing tool did it. So I built one in a weekend, with AI doing most of the typing.
 >
