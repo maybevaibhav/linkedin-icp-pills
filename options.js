@@ -445,6 +445,13 @@ $('resetStats').addEventListener('click', async () => {
   renderStats(stats);
 });
 
+$('previewCard').addEventListener('click', async () => {
+  const res = await send({ type: 'previewCard' });
+  $('previewMsg').textContent = res && res.ok
+    ? 'Sent. Look at the bottom corner of your LinkedIn tab.'
+    : ((res && res.error) || 'Could not reach LinkedIn.');
+});
+
 // ---------- Diagnostics ----------
 
 function fmtDiag(d) {
@@ -468,6 +475,7 @@ function fmtDiag(d) {
     lines.push(`  data in page: ${t.contactsBySlug} contacts by URL, ${t.contactsByName} by name, ${t.labels} labelled people, name matching ${t.nameMatching ? 'on' : 'off'}`);
     if (t.pageSlug) lines.push(`  profile page for: ${t.pageSlug}, name element: ${t.nameEl || 'NOT FOUND'}`);
     lines.push(`  "+" presses received: ${t.clicksSeen}, summary card showing: ${t.cardShowing ? 'yes' : 'no'}, card enabled: ${t.insightsOn ? 'yes' : 'no'}`);
+    lines.push(`  summary card waiting on: ${t.cardBlocker || 'nothing, it is due'}`);
     if (t.errors && t.errors.length) { lines.push('  errors:'); for (const e of t.errors) lines.push(`    ${e}`); }
     else lines.push('  errors: none');
   }

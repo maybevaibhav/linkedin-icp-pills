@@ -45,6 +45,17 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           return sendResponse({ ok: true, data: await testConnection(msg.token) });
         case 'detectProperties':
           return sendResponse({ ok: true, data: await detectLinkedinProperties(msg.token) });
+        case 'previewCard': {
+          const tabs = await chrome.tabs.query({ url: 'https://www.linkedin.com/*' });
+          const tab = tabs.find((t) => t.active) || tabs.find((t) => /\/feed\//.test(t.url)) || tabs[0];
+          if (!tab) return sendResponse({ ok: false, error: 'Open a LinkedIn tab first.' });
+          const r = await new Promise((resolve) => {
+            chrome.tabs.sendMessage(tab.id, { type: 'previewCard' }, (res) => {
+              resolve(chrome.runtime.lastError ? null : res);
+            });
+          });
+          return sendResponse(r ? { ok: true } : { ok: false, error: 'That LinkedIn tab is not running the extension. Refresh it (Cmd+R) and try again.' });
+        }
         case 'diag':
           return sendResponse({ ok: true, data: await collectDiagnostics() });
         case 'syncNowDevices':

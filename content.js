@@ -568,32 +568,53 @@
     return p === '/feed/' || p.startsWith('/feed') || p.startsWith('/search/results/content');
   }
 
+  function isVisible(el) {
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return false;
+    const cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && cs.display !== 'none';
+  }
+
   // Never interrupt: not while typing, not while a LinkedIn dialog is open.
+  // Only a dialog you can actually see counts; LinkedIn keeps hidden ones in the page.
   function userIsBusy() {
     const a = document.activeElement;
     if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return true;
-    if (document.querySelector('[role="dialog"], .artdeco-modal')) return true;
+    for (const d of document.querySelectorAll('[role="dialog"], .artdeco-modal')) {
+      if (isVisible(d)) return true;
+    }
     return false;
+  }
+
+  // Why the card is not showing right now, or null if it is due. Also used by Diagnostics.
+  async function cardBlocker() {
+    if (cardEl) return 'already showing';
+    if (!settings.insightsEnabled) return 'turned off in settings';
+    if (!onFeedPage()) return 'not on a feed page';
+    if (document.visibilityState !== 'visible') return 'tab is in the background';
+    const { stats } = await S.storageGet('stats');
+    const st = stats && stats.people ? stats : null;
+    if (!st) return 'no stats yet';
+    const days = Math.floor((Date.now() - st.periodStart) / 86400000);
+    if (days < (settings.insightsDays || 14)) return `only ${days} of ${settings.insightsDays || 14} days passed`;
+    const n = Object.keys(st.people || {}).length;
+    if (n < (settings.insightsMin || 5)) return `only ${n} of ${settings.insightsMin || 5} people counted`;
+    if (userIsBusy()) return 'a dialog is open or you are typing';
+    return null;
   }
 
   async function maybeShowCard() {
     try {
-      if (cardEl || !settings.insightsEnabled || !onFeedPage()) return;
+      if (await cardBlocker()) return;
       const { stats } = await S.storageGet('stats');
-      const st = stats && stats.people ? stats : null;
-      if (!st) return;
-      const days = Math.floor((Date.now() - st.periodStart) / 86400000);
-      if (days < (settings.insightsDays || 14)) return;
-      const slugs = Object.keys(st.people || {});
-      if (slugs.length < (settings.insightsMin || 5)) return; // too quiet, wait longer
-      if (userIsBusy()) { setTimeout(maybeShowCard, 20000); return; }
-      showCard(st, days, slugs);
+      const days = Math.floor((Date.now() - stats.periodStart) / 86400000);
+      showCard(stats, days, Object.keys(stats.people));
     } catch (e) {
       recordError('insight card', e);
     }
   }
 
-  function showCard(st, days, slugs) {
+  function showCard(st, days, slugs, preview) {
     let icp = 0;
     let manual = 0;
     for (const sl of slugs) {
@@ -622,7 +643,7 @@
         That is ${total} times you did not stop to check HubSpot.
         I'm Vai. I find boring tasks like that and end them, almost always without writing any code.
       </div>
-      <a class="icpx-card__btn" href="https://efficialabs.com/ai-boring-task-fix/" target="_blank" rel="noopener">What is yours? Let's kill it</a>
+      <a class="icpx-card__btn" href="https://efficialabs.com/ai-boring-task-fix/?utm_source=Lead+Magnets&utm_medium=Chrome+Extension&utm_campaign=LinkedIn+ICP+Pills" target="_blank" rel="noopener">What is yours? Let's kill it</a>
       <div class="icpx-card__foot">
         <button class="icpx-card__link" data-act="later">Not now</button>
         <button class="icpx-card__link" data-act="off">Stop showing these</button>
@@ -640,7 +661,7 @@
     cardEl = card;
     document.addEventListener('keydown', cardKey, true);
     // Reset the period now, so it cannot reappear in another tab this session.
-    resetPeriod();
+    if (!preview) resetPeriod();
   }
 
   function cardKey(e) {
@@ -681,14 +702,33 @@
   // ---------- boot ----------
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg && msg.type === 'previewCard') {
+      // Settings-page test button: skips the day/people/busy checks and leaves the stats alone.
+      (async () => {
+        if (cardEl) { cardEl.remove(); cardEl = null; }
+        const { stats } = await S.storageGet('stats');
+        let st = stats && stats.people ? stats : null;
+        let slugs = st ? Object.keys(st.people) : [];
+        if (!slugs.length) {
+          st = { periodStart: Date.now() - 14 * 86400000, people: {} };
+          ['a', 'b', 'c', 'd', 'e', 'f'].forEach((k, i) => { st.people[k] = { icp: i < 3, manual: i === 4 }; });
+          slugs = Object.keys(st.people);
+        }
+        const days = Math.max(1, Math.floor((Date.now() - st.periodStart) / 86400000));
+        showCard(st, days, slugs, true);
+        sendResponse({ ok: true });
+      })();
+      return true;
+    }
     if (!msg || msg.type !== 'diag') return;
     const h1 = document.querySelector('main h1');
     const nameEl = pageSlug() ? findProfileNameEl() : null;
-    sendResponse({
+    cardBlocker().catch((e) => 'error: ' + e.message).then((blocker) => sendResponse({
       nameEl: nameEl ? `${nameEl.tagName.toLowerCase()} "${nameEl.textContent.trim().slice(0, 40)}"` : null,
       clicksSeen,
       cardShowing: !!cardEl,
       insightsOn: settings.insightsEnabled !== false,
+      cardBlocker: blocker,
       version: VERSION,
       url: location.href,
       pageSlug: pageSlug(),
@@ -701,7 +741,7 @@
       labels: Object.keys(manualTags || {}).length,
       nameMatching: settings.nameMatching,
       errors: errors.slice(),
-    });
+    }));
     return true;
   });
 
@@ -719,7 +759,10 @@
     S.storageGet('stats').then(({ stats }) => {
       if (!stats || !stats.people) return S.storageSet({ stats: S.EMPTY_STATS() });
     }).catch(() => {});
+    // Check every 30s, not once: LinkedIn is a single page app, so the first load
+    // is often a profile or a busy moment, and a one-shot check would never retry.
     setTimeout(maybeShowCard, 8000);
+    setInterval(maybeShowCard, 30000);
     chrome.runtime.sendMessage({ type: 'ensureFresh' }, () => void chrome.runtime.lastError);
 
     const observer = new MutationObserver((mutations) => {
